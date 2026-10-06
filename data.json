@@ -26,8 +26,8 @@
   },
   "profile": {
    "name": "하품",
-   "bio": "언농허삽나까 하품입니다 ",
-   "img": "",
+   "bio": "언농허삽나까 하품입니다",
+   "img": "assets/avatar-4dkxypemuwnrkkq.gif",
    "links": [
     {
      "label": "X",
@@ -78,5 +78,5 @@
    "order": 0
   }
  ],
- "savedAt": 1791289886648
+ "savedAt": 1791289939184
 }
