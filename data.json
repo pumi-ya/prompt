@@ -52,6 +52,24 @@
  ],
  "prompts": [],
  "personas": [],
- "pairs": [],
- "savedAt": 1791289574460
+ "pairs": [
+  {
+   "id": "6sxl39mmuwnkrlb",
+   "pairName": "",
+   "friend": "",
+   "nameA": "?",
+   "nameB": "?",
+   "imgA": "",
+   "imgB": "",
+   "start": "",
+   "rel": "",
+   "intro": "",
+   "photos": [],
+   "color": "#8fc4ff",
+   "memo": "",
+   "created": 1791289597871,
+   "order": 0
+  }
+ ],
+ "savedAt": 1791289599385
 }
