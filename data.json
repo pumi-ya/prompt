@@ -1,7 +1,7 @@
 {
  "site": {
-  "title": "prompt archive ✧",
-  "sub": "대문 문구는 편집 모드에서 바꿀 수 있어요",
+  "title": "Y-prompt archive ✧",
+  "sub": "yawn ~~~~~~~~~~~~~~~~~~~~",
   "banner": "",
   "bannerShadowOn": true,
   "bannerShadowColor": "",
@@ -25,16 +25,23 @@
    "density": 1
   },
   "profile": {
-   "name": "이름",
-   "bio": "한 줄 소개",
+   "name": "하품",
+   "bio": "언농허삽나까 하품입니다 ",
    "img": "",
-   "links": []
+   "links": [
+    {
+     "label": "X",
+     "url": "https://x.com/yawnnning"
+    }
+   ]
   },
   "welcome": {
    "on": true,
    "title": "welcome ✧",
    "text": "소개글을 넣어주세요.",
-   "img": ""
+   "img": "",
+   "align": "left",
+   "imgH": 260
   },
   "adminKey": "f383c1d584a10f7ee523ea7729a26a3d0524cba867624173755900463cf6a098"
  },
@@ -71,5 +78,5 @@
    "order": 0
   }
  ],
- "savedAt": 1791289599385
+ "savedAt": 1791289886648
 }
