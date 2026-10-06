@@ -119,6 +119,8 @@ body.mobile .savebar{margin:-16px -12px 16px;border-radius:22px 22px 0 0}
 .show .who{position:relative;z-index:1;text-align:center}
 .show .who img{width:120px;height:120px;object-fit:cover;border:2px solid var(--ink);background:var(--lilac);box-shadow:3px 3px 0 var(--pc)}
 .show .who .nm{margin-top:6px;font-size:13px}
+.show .who.link{cursor:pointer}.show .who.link:hover img{transform:translateY(-2px)}.show .who img{transition:transform .15s}
+.show .who .go{display:inline-block;font-size:10px;border:2px solid var(--ink);background:var(--white);padding:0 4px;margin-left:3px;vertical-align:middle}
 .show .heart{position:relative;z-index:1;font-size:22px;color:var(--pink-deep);text-shadow:2px 2px 0 var(--ink)}
 .show .pn{text-align:center;font-size:15px;margin:2px 0 0}
 .show .fr{text-align:center;font-size:11px;color:var(--ink-soft)}
@@ -238,6 +240,7 @@ body.admin .savebar{display:flex}
     <span class="dirty" id="dirty">사이트 반영됨</span><span id="quota" style="font-size:11px;color:var(--ink-soft)"></span>
     <button class="btn" onclick="saveLocal()">저장</button>
     <button class="btn g" id="saveBtn" onclick="publish()">지금 다시 올리기</button>
+    <button class="btn mini" onclick="$('#siteIn').click()" title="새 index.html로 사이트 교체">사이트 파일 교체</button><input type="file" id="siteIn" accept=".html,text/html" class="hidden" onchange="replaceSite(this.files[0]);this.value=''">
     <button class="btn ghost" onclick="exitAdmin()">나가기</button>
   </div>
 
@@ -405,12 +408,12 @@ function render(){
   const tagHtml=(items,v)=>{ const tc={}; items.forEach(p=>(p.tags||[]).forEach(t=>tc[t]=(tc[t]||0)+1));
     return Object.keys(tc).sort().map(t=>`<span class="tag ${view===v&&curTag===t?'on':''}" onclick="setView('${v}',true);selTag('${esc(t)}')">${esc(t)} ${tc[t]}</span>`).join('')||'<span style="font-size:11px;color:var(--ink-soft)">태그 없음</span>'; };
   $('#pTagCloud').innerHTML=tagHtml(data.prompts,'prompts'); $('#sTagCloud').innerHTML=tagHtml(data.personas,'personas');
-  $('#pairList').innerHTML=data.pairs.slice().sort(byOrder).map(x=>`<div class="pairbox ${curPair===x.id?'on':''}" style="--pc:${x.color||'#8fc4ff'}99" onclick="openPair('${x.id}')">${esc(x.nameA)} × ${esc(x.nameB)}</div>`).join('')||'<div style="font-size:11px;color:var(--ink-soft);text-align:center;padding:4px">아직 없음</div>';
+  $('#pairList').innerHTML=data.pairs.slice().sort(byOrder).map(x=>`<div class="pairbox ${curPair===x.id?'on':''}" style="--pc:${x.color||'#8fc4ff'}99" onclick="openPair('${x.id}')">${esc(pairA(x).name)} × ${esc(x.nameB)}</div>`).join('')||'<div style="font-size:11px;color:var(--ink-soft);text-align:center;padding:4px">아직 없음</div>';
   if(view==='pair'){ const x=data.pairs.find(p=>p.id===curPair); if(!x){setView('personas');return;}
-    const fmt=d=>d?d.replace(/-/g,'.'):'';
+    const fmt=d=>d?d.replace(/-/g,'.'):''; const A=pairA(x);
     $('#cards').innerHTML=`<div class="win show" style="--pc:${x.color||'#8fc4ff'};box-shadow:4px 4px 0 ${x.color||'#8fc4ff'}">
-      <div class="win-title">${esc(x.pairName||x.nameA+' × '+x.nameB)}<span class="row" style="margin-left:auto;gap:4px"><button class="btn mini admin-only l" onclick="openPairEditor('${x.id}')">편집</button><span class="dots"><i></i><i></i><i></i></span></span></div>
-      <div class="duo"><div class="who"><img src="${esc(x.imgA||'')}" alt=""><div class="nm">${esc(x.nameA)}</div></div><div class="heart">♡</div><div class="who"><img src="${esc(x.imgB||'')}" alt=""><div class="nm">${esc(x.nameB)}</div></div></div>
+      <div class="win-title">${esc(x.pairName||A.name+' × '+x.nameB)}<span class="row" style="margin-left:auto;gap:4px"><button class="btn mini admin-only l" onclick="openPairEditor('${x.id}')">편집</button><span class="dots"><i></i><i></i><i></i></span></span></div>
+      <div class="duo"><div class="who ${A.pid?'link':''}" ${A.pid?`onclick="openPersona('${A.pid}')" title="프롬 보기"`:''}><img src="${esc(A.img)}" alt=""><div class="nm">${esc(A.name)}${A.pid?' <span class="go">✧ 프롬</span>':''}</div></div><div class="heart">♡</div><div class="who"><img src="${esc(x.imgB||'')}" alt=""><div class="nm">${esc(x.nameB)}</div></div></div>
       ${x.pairName?`<div class="pn">${esc(x.pairName)}</div>`:''}${x.friend?`<div class="fr">with ${esc(x.friend)}</div>`:''}
       <div class="meta"><span>${x.rel?'♡ '+esc(x.rel):''}</span><span>${x.start?'since '+fmt(x.start):''}</span></div>
       ${x.intro?`<div class="intro">${esc(x.intro)}</div>`:''}
@@ -530,6 +533,7 @@ function delPersona(id){ if(!confirm('이 페르소나를 삭제할까요?'))ret
 /* ---------- u×u pair ---------- */
 const PAIR_PAL=['#8fc4ff','#c9b3ff','#ffb3c6','#a8e6c8','#ffe08a','#ffc9a8'];
 let pairPhotos=[], pairImg={};
+function pairA(x){ const ps=x.personaId&&data.personas.find(p=>p.id===x.personaId); return {name:ps?ps.name:(x.nameA||'?'), img:x.imgA||(ps?.images?.[0]||''), pid:ps?ps.id:''}; }
 function openPairEditor(id){
   id=id||'';
   const x=id?data.pairs.find(p=>p.id===id):{pairName:'',friend:'',nameA:'',nameB:'',imgA:'',imgB:'',start:'',rel:'',intro:'',photos:[],color:'#8fc4ff',memo:''};
@@ -537,7 +541,7 @@ function openPairEditor(id){
   modal(`<div class="win-title">${id?'페어 편집':'새 페어'}<span class="dots"><i></i><i></i><i></i></span></div>
   <div class="body">
     <div class="row"><div style="flex:1"><label class="f">페어명</label><input type="text" id="r_pairName" value="${esc(x.pairName||'')}"></div><div style="flex:1"><label class="f">트친명</label><input type="text" id="r_friend" value="${esc(x.friend||'')}"></div></div>
-    <div class="row" style="align-items:flex-start"><div style="flex:1"><label class="f">내 캐 이름</label><input type="text" id="r_nameA" value="${esc(x.nameA||'')}"><div class="row" style="margin-top:6px"><img class="prev" id="r_imgA" src="${esc(x.imgA||'')}" alt=""><button class="btn mini" onclick="pickPairImg('A')">사진</button></div></div>
+    <div class="row" style="align-items:flex-start"><div style="flex:1"><label class="f">내 캐 (페르소나에서 고르기)</label><select id="r_persona" onchange="$('#r_nameA').classList.toggle('hidden',!!this.value)"><option value="">직접 입력</option>${data.personas.slice().sort(byOrder).map(ps=>`<option value="${ps.id}" ${x.personaId===ps.id?'selected':''}>${esc(ps.name)}</option>`).join('')}</select><input type="text" id="r_nameA" class="${x.personaId?'hidden':''}" placeholder="이름" value="${esc(x.nameA||'')}" style="margin-top:5px"><div class="row" style="margin-top:6px"><img class="prev" id="r_imgA" src="${esc(x.imgA||'')}" alt=""><button class="btn mini" onclick="pickPairImg('A')">사진</button><button class="btn mini" onclick="pairImg.A='';$('#r_imgA').src=''">비우기</button></div><div style="font-size:11px;color:var(--ink-soft);margin-top:3px">사진 비워두면 페르소나 첫 사진이 들어가요</div></div>
       <div style="flex:1"><label class="f">트친 캐 이름</label><input type="text" id="r_nameB" value="${esc(x.nameB||'')}"><div class="row" style="margin-top:6px"><img class="prev" id="r_imgB" src="${esc(x.imgB||'')}" alt=""><button class="btn mini" onclick="pickPairImg('B')">사진</button></div></div></div>
     <div class="row"><div style="flex:1"><label class="f">시작 날짜</label><input type="date" id="r_start" value="${esc(x.start||'')}" style="border:2px solid var(--ink);padding:5px 8px;width:100%"></div><div style="flex:1"><label class="f">관계 (선택)</label><input type="text" id="r_rel" value="${esc(x.rel||'')}"></div></div>
     <label class="f">소개글</label><textarea id="r_intro">${esc(x.intro||'')}</textarea>
@@ -557,7 +561,7 @@ function renderPairPhotos(){ $('#r_imgs').innerHTML=`<div class="imgs">${pairPho
 async function addPairPhotos(files){ for(const f of files){ if(!f.type.startsWith('image/'))continue; toast('사진 정리 중…',9000); const b=await stripMeta(f); const path=await uploadFile(b,'images/'+uid()+'.'+b.ext); if(path)pairPhotos.push(path); } toast('추가됨'); renderPairPhotos(); }
 function pickPairImg(k){ const inp=document.createElement('input');inp.type='file';inp.accept='image/*';inp.onchange=async()=>{const f=inp.files[0];if(!f)return;toast('올리는 중…',9000);const b=await stripMeta(f,600);const path=await uploadFile(b,'images/'+uid()+'.'+b.ext);if(path){pairImg[k]=path;$('#r_img'+k).src=path;toast('올라감');}};inp.click(); }
 function savePair(id){
-  const obj={id:id||uid(),pairName:$('#r_pairName').value.trim(),friend:$('#r_friend').value.trim(),nameA:$('#r_nameA').value.trim()||'?',nameB:$('#r_nameB').value.trim()||'?',imgA:pairImg.A,imgB:pairImg.B,start:$('#r_start').value,rel:$('#r_rel').value.trim(),intro:$('#r_intro').value.trim(),photos:[...pairPhotos],color:$('#r_pal i.on')?.dataset.c||'#8fc4ff',memo:$('#r_memo').value.trim(),created:Date.now(),order:data.pairs.length};
+  const pid=$('#r_persona').value; const obj={id:id||uid(),personaId:pid,pairName:$('#r_pairName').value.trim(),friend:$('#r_friend').value.trim(),nameA:pid?(data.personas.find(p=>p.id===pid)?.name||'?'):($('#r_nameA').value.trim()||'?'),nameB:$('#r_nameB').value.trim()||'?',imgA:pairImg.A,imgB:pairImg.B,start:$('#r_start').value,rel:$('#r_rel').value.trim(),intro:$('#r_intro').value.trim(),photos:[...pairPhotos],color:$('#r_pal i.on')?.dataset.c||'#8fc4ff',memo:$('#r_memo').value.trim(),created:Date.now(),order:data.pairs.length};
   const i=data.pairs.findIndex(x=>x.id===id); if(i>=0){obj.created=data.pairs[i].created;obj.order=data.pairs[i].order;data.pairs[i]=obj;} else data.pairs.push(obj);
   setDirty(true); closeModal(); openPair(obj.id); toast('저장되었습니다 ✧',2200);
 }
@@ -668,10 +672,13 @@ function openSiteEditor(){
     <label class="f">이름</label><input type="text" id="p_name" value="${esc(p.name)}">
     <label class="f">소개</label><textarea id="p_bio" style="min-height:56px">${esc(p.bio)}</textarea>
     <label class="f">프로필 사진 (gif 가능)</label><div class="row"><img class="prev" id="s_avatarP" src="${esc(p.img)}" alt=""><button class="btn mini" onclick="pickImg('avatar',400)">올리기</button><button class="btn mini" onclick="clearImg('avatar')">지우기</button></div>
-    <label class="f">SNS 링크 — 한 줄에 하나, "이름 | 주소" (이름 생략하면 사이트 이름으로)</label><textarea id="p_links" style="min-height:70px" placeholder="X | https://x.com/아이디&#10;포스타입 | https://posty.pe/…&#10;https://instagram.com/아이디">${esc((p.links||[]).map(l=>l.label+' | '+l.url).join('\n'))}</textarea>
+    <label class="f">SNS 링크 — 주소 붙여넣으면 이름이 자동으로 채워지고, 이름은 마음대로 바꿔도 돼요</label>
+    <div id="p_linkRows"></div>
+    <button class="btn mini s" style="margin-top:6px" onclick="addLinkRow('','');previewSite()">+ 링크</button>
 
     <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn" onclick="closeModal()">취소</button><button class="btn p" onclick="saveSite()">확인</button></div>
   </div>`);
+  (p.links||[]).forEach(l=>addLinkRow(l.label,l.url)); if(!(p.links||[]).length)addLinkRow('','');
   $('#s_effect').value=s.effect||'none'; $('#s_bgSize').value=s.bgSize||'cover'; $('#s_cursorSize').value=s.cursorSize||32; $('#s_cursorHot').value=s.cursorHot||'tl'; $('#s_laceColor').oninput=function(){delete this.dataset.def;}; if(!s.laceColor)$('#s_laceColor').dataset.def='1'; $('#s_shColor').oninput=function(){delete this.dataset.def;}; if(!s.bannerShadowColor)$('#s_shColor').dataset.def='1'; if(!s.bgColor)$('#s_bgColor').dataset.clear='1';
   $('#s_accent').oninput=e=>{document.querySelectorAll('#s_sw i').forEach(i=>i.classList.remove('on'));};
   $('#modalRoot .modal').classList.add('panel');
@@ -719,10 +726,20 @@ function fillSite(s){
   s.welcome=s.welcome||{}; s.welcome.on=$('#w_on').checked; s.welcome.title=$('#w_title').value; s.welcome.text=$('#w_text').value; s.welcome.align=$('#w_alignRow .btn.on')?.dataset.v||'left'; s.welcome.imgH=+$('#w_imgH').value; if('welcome' in tmpImgs)s.welcome.img=tmpImgs.welcome;
   s.effect=$('#s_effect').value; s.fx={density:+$('#s_density').value};
   s.profile.name=$('#p_name').value; s.profile.bio=$('#p_bio').value;
-  s.profile.links=$('#p_links').value.split('\n').map(l=>l.trim()).filter(Boolean).map(l=>{ let [a,b]=l.includes('|')?l.split('|').map(x=>x.trim()):['',l];
-    if(!/^https?:\/\//i.test(b))b='https://'+b; if(!a){ try{a=new URL(b).hostname.replace(/^www\./,'').split('.')[0];}catch(e){a='link';} const nm={x:'X',twitter:'X',instagram:'Instagram',pixiv:'pixiv',posty:'포스타입',postype:'포스타입',github:'GitHub',youtube:'YouTube',bsky:'Bluesky',discord:'Discord',cafe:'카페',blog:'블로그'}; a=nm[a]||a; }
-    return {label:a,url:b}; });
+  s.profile.links=[...document.querySelectorAll('#p_linkRows .lrow')].map(r=>{ let b=r.querySelector('.lu').value.trim(); if(!b)return null; if(!/^https?:\/\//i.test(b))b='https://'+b;
+    return {label:r.querySelector('.ll').value.trim()||guessLinkName(b),url:b}; }).filter(Boolean);
 }
+
+function guessLinkName(u){ let a='link'; try{a=new URL(/^https?:/i.test(u)?u:'https://'+u).hostname.replace(/^www\./,'').split('.')[0];}catch(e){}
+  const nm={x:'X',twitter:'X',instagram:'Instagram',pixiv:'pixiv',posty:'포스타입',postype:'포스타입',github:'GitHub',youtube:'YouTube',bsky:'Bluesky',discord:'Discord',cafe:'카페',blog:'블로그',loverme:'러버미',tistory:'티스토리'}; return nm[a]||a; }
+function addLinkRow(label,url){ const d=document.createElement('div'); d.className='row lrow'; d.style.marginTop='5px'; d.style.flexWrap='nowrap';
+  d.innerHTML=`<input type="text" class="ll" placeholder="보일 이름" value="${esc(label)}" style="width:32%"><input type="text" class="lu" placeholder="주소 붙여넣기" value="${esc(url)}" style="flex:1"><button class="btn mini" title="삭제">✕</button>`;
+  const ll=d.querySelector('.ll'), lu=d.querySelector('.lu');
+  lu.addEventListener('input',()=>{ if(!ll.dataset.touched && lu.value.trim()) ll.value=guessLinkName(lu.value.trim()); });
+  ll.addEventListener('input',()=>{ ll.dataset.touched=ll.value?'1':''; });
+  if(label)ll.dataset.touched='1';
+  d.querySelector('button').onclick=()=>{ d.remove(); previewSite(); };
+  $('#p_linkRows').appendChild(d); }
 
 /* ---------- admin / github ---------- */
 function setDevice(m){ document.body.classList.toggle('mobile',m); $('#devPC').classList.toggle('on',!m); $('#devMO').classList.toggle('on',m); }
@@ -800,6 +817,15 @@ async function publish(auto){
   else { $('#dirty').textContent='올리기 실패 — 다시 시도'; toast('올리기 실패. 연결 설정을 확인해 주세요',4000); }
 }
 
+async function replaceSite(f){
+  if(!f)return; if(!cfg?.token)return openSetup();
+  const t=await f.text(); if(!t.includes('<html')||!t.includes('prompt archive'))return toast('이 사이트 파일이 아닌 것 같아요',3000);
+  if(!confirm('사이트 생김새·기능을 이 파일로 바꿀까요? (넣어둔 내용은 그대로예요)'))return;
+  toast('사이트 파일 올리는 중…',20000);
+  const ok=await putFile('index.html',btoa(unescape(encodeURIComponent(t))),'update site file');
+  toast(ok?'바뀌었어요 ✧ 1~2분 뒤 새로고침하면 새 버전이에요':'올리기 실패. 연결 설정을 확인해 주세요',4000);
+}
+
 /* ---------- json backup ---------- */
 function exportJson(){
   const blob=new Blob([JSON.stringify(data,null,1)],{type:'application/json'});
@@ -810,7 +836,7 @@ async function importJson(f){
   if(!f)return;
   try{ const d=JSON.parse(await f.text()); if(!d.site||!d.prompts)throw 0;
     if(!confirm('현재 내용을 이 파일로 바꿀까요?'))return;
-    data=Object.assign(structuredClone(DEFAULT),d); data.personas=data.personas||[]; data.pairs=data.pairs||[]; data.pfolders=data.pfolders?.length?data.pfolders:[{id:'pf1',name:'기본'}];
+    const keepKey=data.site?.adminKey; data=Object.assign(structuredClone(DEFAULT),d); if(keepKey&&!data.site.adminKey)data.site.adminKey=keepKey; // 비밀 키는 유지 data.personas=data.personas||[]; data.pairs=data.pairs||[]; data.pfolders=data.pfolders?.length?data.pfolders:[{id:'pf1',name:'기본'}];
     curFolder='all';curPFolder='all';curTag=null;curPersona=null; setDirty(true); applySite(); render(); toast('불러왔어요 ✧');
   }catch(e){ toast('이 사이트의 JSON 파일이 아니에요',3000); }
 }
